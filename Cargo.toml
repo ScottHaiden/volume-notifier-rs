@@ -1,0 +1,9 @@
+[package]
+name = "volumers"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.5.49", features = ["derive", "string"] }
+libc = "0.2.177"
+regex = "1.12.2"
