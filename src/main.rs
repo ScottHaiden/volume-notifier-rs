@@ -99,32 +99,15 @@ fn run_or_die(cmd: &[String]) -> String {
 }
 
 fn parse_volume(vol: &str) -> (u32, Vec<&str>) {
-    let m = Regex::new(r"Volume: (.*), \s+(.*)")
-        .expect("RE failed to compile.");
-
-    let mut ret = Vec::<&str>::new();
-
-    for (_, [left, right]) in m.captures_iter(vol).map(|c| c.extract()) {
-        ret.push(left.into());
-        ret.push(right.into());
-    }
-
-    let channel_re =
-        Regex::new(r"[^ ]+: [0-9]+ / \s*([0-9]+)% / -?[0-9.]+ dB$")
-            .expect("RE failed to compile");
+    let re = Regex::new(r"\S+: [0-9]+ / \s*([0-9]+)% / -?[0-9.]+ dB")
+        .expect("RE failed to compile");
 
     let mut total = 0u32;
+    let mut ret = Vec::<&str>::new();
 
-    for channel in ret.iter() {
-        let capture = channel_re.captures(channel);
-        if capture.is_none() { continue; }
-        total += capture
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .as_str()
-            .parse::<u32>()
-            .unwrap();
+    for (full, [pct]) in re.captures_iter(vol).map(|c| c.extract()) {
+        ret.push(full);
+        total += pct.parse::<u32>().unwrap();
     }
 
     (total / ret.len() as u32, ret)
