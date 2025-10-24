@@ -99,18 +99,20 @@ fn run_or_die(cmd: &[String]) -> String {
 }
 
 fn parse_volume(vol: &str) -> (u32, Vec<&str>) {
-    let re = Regex::new(r"\S+: [0-9]+ / \s*([0-9]+)% / -?[0-9.]+ dB")
+    let re = Regex::new(r"\S+: [0-9]+ / \s*([0-9]+)% / -?([0-9.]+|inf) dB")
         .expect("RE failed to compile");
 
     let mut total = 0u32;
     let mut ret = Vec::<&str>::new();
 
-    for (full, [pct]) in re.captures_iter(vol).map(|c| c.extract()) {
+    for (full, [pct, _gain]) in re.captures_iter(vol).map(|c| c.extract()) {
         ret.push(full);
         total += pct.parse::<u32>().unwrap();
     }
 
-    (total / ret.len() as u32, ret)
+    let pct = if total > 0 { total / ret.len() as u32 } else { 0u32 };
+
+    (pct, ret)
 }
 
 fn get_icon(mutestr: &str, percent: u32) -> &'static str {
