@@ -140,12 +140,19 @@ fn main() -> std::io::Result<()> {
         .create(true)
         .append(true)
         .open(args.db_path)?;
+
+    // First get a shared lock on the database.
     db.lock_shared()?;
 
-    // Read the database under a shared lock.
+    // Next, attempt to read the DB while holding the shared lock.
     let old_id: Option<i32> = if let Some(id) = read_db(&mut db)? {
+        // If it succeeds, return the result as is.
         Some(id)
     } else {
+        // If it is empty to start, then upgrade our lock. This calls the flock(2) system call
+        // under the hood, going from LOCK_SH to LOCK_EX is non atomic; as such, when we finish
+        // locking the database we reattempt reading the database, in case another process has
+        // managed to fill the DB between dropping and relocking.
         db.lock()?;
         read_db(&mut db)?
     };
@@ -166,7 +173,8 @@ fn main() -> std::io::Result<()> {
 
     let new_id = run_or_die(&notif_cmd).parse::<i32>().expect("Failed to parse new ID");
 
-    if let None = old_id { write_db(&mut db, new_id)?; }
+    // Check if the database had any contents to start; if not, then we will populate it.
+    if old_id.is_none() { write_db(&mut db, new_id)?; }
 
     Ok(())
 }
