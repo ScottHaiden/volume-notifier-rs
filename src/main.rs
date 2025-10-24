@@ -134,6 +134,11 @@ fn main() -> std::io::Result<()> {
     let volume = run_or_die(&["pactl".into(), "get-sink-volume".into(), args.sink.clone()]);
     let (vol_pct, channels) = parse_volume(&volume);
 
+    let channels = channels.into_iter()
+        .map(|c| format!("- {}", c))
+        .collect::<Vec<String>>()
+        .join("\n");
+
     let mut db = File::options()
         .read(true)
         .write(true)
@@ -156,11 +161,6 @@ fn main() -> std::io::Result<()> {
         db.lock()?;
         read_db(&mut db)?
     };
-
-    let channels = channels.into_iter()
-        .map(|c| format!("- {}", c))
-        .collect::<Vec<String>>()
-        .join("\n");
 
     let mut notif_cmd = vec![
         "notify-send".into(),
